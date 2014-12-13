@@ -1,15 +1,11 @@
 kdlib = ../libkdtree.a
+CPP = gcc
+CFLAGS = -Wall -Wextra -std=c++0x -lstdc++ -O2 -g3 -fopenmp -I..
+test: 	test.cpp 
+	$(CPP) $(CFLAGS) test.cpp  ${kdlib} -o test
 
-CC = gcc
-CFLAGS = -std=c89 -pedantic -Wall -g -I..
-LDFLAGS = $(kdlib) -lm
+clean:	
+	rm -f test
 
-.PHONY: all
-all: test test2
-
-test: test.c $(kdlib)
-test2: test2.c $(kdlib)
-
-.PHONY: clean
-clean:
-	rm -f test test2
+run: 
+	./test 20640 8 /scratch/02336/nrajani/data/cadata 32

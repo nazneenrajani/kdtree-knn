@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stdbool.h>
 #include "kdtree.h"
 
 #if defined(WIN32) || defined(__WIN32__)
@@ -20,6 +21,8 @@
 
 #endif	/* pthread support */
 #endif	/* use list node allocator */
+
+//using namespace std;
 
 struct kdhyperrect {
 	int dim;
@@ -52,6 +55,7 @@ struct kdres {
 	int size;
 };
 
+
 #define SIZE 100
 
 struct rheap {
@@ -65,7 +69,7 @@ struct rheap {
 
 
 static void clear_rec(struct kdnode *node, void (*destr)(void*));
-static int insert_rec(struct kdnode **node, const double *pos, int *data, int dir, int dim);
+static int insert_rec(struct kdnode **node, const double *pos, int data, int dir, int dim);
 static int rlist_insert(struct res_node *list, struct kdnode *item, double dist_sq);
 static void clear_results(struct kdres *set);
 
@@ -140,7 +144,7 @@ void kd_data_destructor(struct kdtree *tree, void (*destr)(void*))
 }
 
 
-static int insert_rec(struct kdnode **nptr, const double *pos, int *data, int dir, int dim)
+static int insert_rec(struct kdnode **nptr, const double *pos, int data, int dir, int dim)
 {
 	int new_dir;
 	struct kdnode *node;
@@ -169,7 +173,7 @@ static int insert_rec(struct kdnode **nptr, const double *pos, int *data, int di
 	return insert_rec(&(*nptr)->right, pos, data, new_dir, dim);
 }
 
-int kd_insert(struct kdtree *tree, const double *pos, int *data)
+int kd_insert(struct kdtree *tree, const double *pos, int data)
 {
 	if (insert_rec(&tree->root, pos, data, 0, tree->dim)) {
 		return -1;
@@ -183,6 +187,74 @@ int kd_insert(struct kdtree *tree, const double *pos, int *data)
 
 	return 0;
 }
+bool sortNode(struct kdnode* i,struct kdnode* j, int dim){
+    printf("sorting\n");
+    return i->pos[dim] < j->pos[dim];
+}
+static int insert_rec_all(struct kdnode *nptr, char* side, struct kdnode* nodes , int start, int end, int dim)
+{
+    if(!start == end){
+        if ((end - start) == 1) {
+            if (strcmp(side, "left")==0) {
+                nptr->left=&nodes[start];
+            }
+            else if (strcmp(side, "right")==0) {
+                nptr->right=&nodes[start];
+            }
+            return 0;
+        }
+        struct kdnode* new_node = &nodes[start];
+        qsort_r(new_node, end-start,sizeof(nodes[0]),sortNode,dim);
+        int median = start + (end-start)/2;
+        if (strcmp(side, "left")==0) {
+            nptr->left=&nodes[median];
+            insert_rec_all(nptr->left, "left", nodes, start, median, dim+1);
+            insert_rec_all(nptr->right, "right", nodes, median+1, end, dim+1);
+        }
+        else if (strcmp(side, "right")==0) {
+           nptr->right=&nodes[median];
+            insert_rec_all(nptr->left, "left", nodes, start, median, dim+1);
+            insert_rec_all(nptr->right, "right", nodes, median+1, end, dim+1);
+        }
+    }
+    return 0;
+}
+
+
+
+int kd_insert_all(struct kdtree *tree, const double **pos_all, int *data, int n, int D)
+{   struct kdnode *nodes[n];
+    int j;
+    //printf("for\n");
+    for (j=0; j<n; j++) {
+        struct kdnode *node;
+        //printf("for\n");
+        if(!(node = malloc(sizeof *node))) {
+            return -1;
+        }
+        if(!(node->pos = malloc(D * sizeof *node->pos))) {
+            free(node);
+            return -1;
+        }
+        //printf("for done\n");
+        memcpy(node->pos, &pos_all[j], D * sizeof *node->pos);
+        node->data = data[j];
+        //node->dir = dir;
+        node->left = node->right = 0;
+        nodes[j] = node;
+        free(node);
+    }
+    printf("for done\n");
+    qsort_r(nodes, n, sizeof(nodes[0]),sortNode,0);
+    printf("done sorting\n");
+    tree->root = nodes[n/2];
+    if (insert_rec_all(&tree->root,"left",&nodes, 0, n/2,1) && insert_rec_all(&tree->root, "right",&nodes,n/2+1 ,n, 1)) {
+        return -1;
+    }
+    
+    return 0;
+}
+
 
 static int find_nearest(struct kdnode *node, const double *pos, double range, struct res_node *list, int ordered, int dim)
 {

@@ -1,0 +1,3 @@
+./test 60000 784 /scratch/02336/nrajani/SML/kdtree-knn/data/mnist-train.dat 1
+0.607 sec for creating tree 
+4098.60400 sec for querying tree 

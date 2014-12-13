@@ -1,12 +1,44 @@
-CPP = g++
-CFLAGS = -O2 -fopenmp -std=c++11 
-LIBS = 
+PREFIX = /usr/local
+dbg = -g
+opt = -O3
+falloc = -DUSE_LIST_NODE_ALLOCATOR
+ldpthread = -lpthread
+shared = -dynamiclib
+so_suffix = dylib
+pic = -fPIC
+obj = kdtree.o
+lib_a = libkdtree.a
+lib_so = libkdtree.$(so_suffix)
 
-test: balltree.cpp
-	$(CPP) $(CFLAGS)  balltree.cpp ${LIBS} -o balltree
+CC = gcc
+CFLAGS = -pedantic -Wall -g -O3 $(pic) $(opt) $(dbg) $(falloc) $(pthreads)
+LDFLAGS = $(ldpthread)
 
-clean: 
-	rm balltree
+.PHONY: all
+all: $(lib_a) $(lib_so)
 
-run:
-	./balltree
+$(lib_a): $(obj)
+	$(AR) rcs $@ $(obj)
+
+$(lib_so): $(obj)
+	$(CC) $(shared) -o $@ $(obj) $(LDFLAGS)
+
+.PHONY: examples
+examples:
+	cd examples; $(MAKE)
+
+.PHONY: clean
+clean:
+	rm -f $(obj) $(lib_a) $(lib_so)
+
+.PHONY: install
+install:
+	cp kdtree.h $(PREFIX)/include/kdtree.h
+	cp $(lib_so) $(PREFIX)/lib/$(lib_so)
+	cp $(lib_a) $(PREFIX)/lib/$(lib_a)
+
+.PHONY: uninstall
+uninstall:
+	rm -f $(PREFIX)/include/kdtree.h
+	rm -f $(PREFIX)/lib/$(lib_so)
+	rm -f $(PREFIX)/lib/$(lib_a)

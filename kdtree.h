@@ -53,7 +53,7 @@ void kd_clear(struct kdtree *tree);
 void kd_data_destructor(struct kdtree *tree, void (*destr)(void*));
 
 /* insert a node, specifying its position, and optional data */
-int kd_insert(struct kdtree *tree, const double *pos, int *data);
+int kd_insert(struct kdtree *tree, const double *pos, int data);
 
 /* Find the nearest node from a given point.
  *
